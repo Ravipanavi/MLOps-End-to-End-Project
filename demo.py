@@ -19,3 +19,8 @@
 # except Exception as e:
 #     logging.error("Exception occurred", exc_info=True)
 #     raise MyException(e, sys)
+
+from src.pipline.training_pipeline import TrainPipeline
+
+pipline = TrainPipeline()
+pipline.run_pipeline()

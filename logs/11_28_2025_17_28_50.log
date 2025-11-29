@@ -1,6 +1,0 @@
-[ 2025-11-28 17:28:50,178 ] root - ERROR - Exception occurred
-Traceback (most recent call last):
-  File "D:\RRR\Upgrad\Re-Learning\MLOps\MLOps-End-to-End-Project\demo.py", line 18, in <module>
-    a = 1 + 'Z'
-TypeError: unsupported operand type(s) for +: 'int' and 'str'
-[ 2025-11-28 17:28:50,179 ] root - ERROR - Error occurred in python script: [D:\RRR\Upgrad\Re-Learning\MLOps\MLOps-End-to-End-Project\demo.py] at line number [18]: unsupported operand type(s) for +: 'int' and 'str'
