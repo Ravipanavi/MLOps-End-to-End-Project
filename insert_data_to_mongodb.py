@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 import pymongo
+from pymongo.errors import ConnectionFailure
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,7 +23,7 @@ if not MONGODB_URL:
     sys.exit(1)
 
 try:
-    client = pymongo.MongoClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
+    client = pymongo.MongoClient(MONGODB_URL, serverSelectionTimeoutMS=10000)
     client.admin.command('ping')
     print("MongoDB connection successful")
     
@@ -33,18 +34,30 @@ try:
     deleted = collection.delete_many({})
     print(f"Deleted {deleted.deleted_count} existing records")
     
-    # Insert new data
-    data = df.to_dict(orient='records')
-    result = collection.insert_many(data)
-    print(f"Inserted {len(result.inserted_ids)} new records")
+    # Insert new data in batches
+    print("Inserting new data in batches...")
+    chunk_size = 10000
+    total_inserted = 0
+    for i in range(0, len(df), chunk_size):
+        chunk = df.iloc[i:i+chunk_size]
+        data = chunk.to_dict(orient='records')
+        result = collection.insert_many(data)
+        total_inserted += len(result.inserted_ids)
+        print(f"  Inserted batch {i//chunk_size + 1}, {len(result.inserted_ids)} records. Total inserted: {total_inserted}")
+
+    print(f"Finished inserting {total_inserted} new records.")
     
     # Verify
     count = collection.count_documents({})
     print(f"Total documents now: {count}")
     
-    client.close()
-    print("MongoDB data insertion completed successfully!")
-    
+except ConnectionFailure as e:
+    print(f"ERROR: MongoDB connection failed: {e}")
+    sys.exit(1)
 except Exception as e:
     print(f"ERROR: {e}")
     sys.exit(1)
+finally:
+    if 'client' in locals() and client:
+        client.close()
+        print("MongoDB connection closed.")
