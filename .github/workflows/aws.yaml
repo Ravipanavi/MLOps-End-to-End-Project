@@ -7,8 +7,6 @@ on:
 jobs:
   Continuous-Integration:
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.build-image.outputs.image }}
 
     steps:
       - name: Checkout
@@ -34,14 +32,18 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .  
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" > image_uri.txt
+
+      - name: Upload image URI as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: image-uri-artifact
+          path: image_uri.txt
 
   Continuous-Deployment:
     needs: Continuous-Integration
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
 
       - name: Configure AWS credentials for Kubectl
         uses: aws-actions/configure-aws-credentials@v1
@@ -53,17 +55,21 @@ jobs:
       - name: Update kube config
         run: aws eks update-kubeconfig --name vehicle-insurance-cluster --region ${{ secrets.AWS_DEFAULT_REGION }}
 
-      - name: Deploy to EKS
-        env:
-          IMAGE_URI: ${{ needs.Continuous-Integration.outputs.image }}
+      - name: Download image URI artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: image-uri-artifact
 
+      - name: Deploy to EKS
         run: |
+          # Read the image URI from the downloaded artifact file
+          IMAGE_URI=$(cat image_uri.txt)
+
           # Create Kubernetes secret from GitHub secret. This only needs to run once, or when the secret changes.
           kubectl create secret generic mongodb-secret --from-literal=MONGODB_URL='${{ secrets.MONGODB_URL }}' --dry-run=client -o yaml | kubectl apply -f -
           
           # Apply the service and deployment manifests
-          kubectl apply -f service.yaml
-          kubectl apply -f deployment.yaml
+          # The checkout step is no longer needed as we are not using local files for apply
           
           # Trigger a rolling update of the deployment with the new Docker image
           kubectl set image deployment/vehicle-insurance-deployment vehicle-insurance-app=$IMAGE_URI
