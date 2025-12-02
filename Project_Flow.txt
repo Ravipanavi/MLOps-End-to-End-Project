@@ -197,10 +197,14 @@
       * Install the stack into a 'monitoring' namespace: `helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace`
 
 48. Configure Prometheus to find and scrape metrics from the application:
-      * Edit `service.yaml` to add annotations (`prometheus.io/scrape`, `prometheus.io/path`, `prometheus.io/port`).
-      * Apply the changes: `kubectl apply -f service.yaml`.
+      * The Prometheus Operator needs to be told explicitly how to find the application service.
+      * Add a `name: http` to the port in `service.yaml`.
+      * Add a `labels: {app: vehicle-insurance}` to the metadata in `service.yaml`.
+      * Create a `servicemonitor.yaml` file to define a ServiceMonitor resource. This resource tells Prometheus to look for a service with the label `app: vehicle-insurance` in the `default` namespace.
+      * Apply the changes: `kubectl apply -f service.yaml` and `kubectl apply -f servicemonitor.yaml`.
 
 49. Access the Grafana dashboard to visualize metrics:
-      * Get the admin password: `kubectl get secret --namespace monitoring prometheus-graf-admin -o jsonpath="{.data.password}" | base64 --decode`
+      * Get the admin password (the secret name may vary based on Helm release name): `kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode`
       * Forward a local port to the Grafana service: `kubectl --namespace monitoring port-forward svc/prometheus-grafana 3000:80`
       * Open `http://localhost:3000` in a browser and log in with username 'admin' and the retrieved password.
+      * Use the Explore view to query metrics like `http_requests_total{app="vehicle-insurance"}`.

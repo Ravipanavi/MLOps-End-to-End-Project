@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vehicle-insurance-service
+  labels:
+    app: vehicle-insurance # Add this label to be discovered by the ServiceMonitor
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/path:   /metrics
