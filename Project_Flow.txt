@@ -141,3 +141,66 @@
         > type: Custom TCP > Port range: 5080 > 0.0.0.0/0 > Save rules
 33. Now paste the public ip address on the address bar +:5080 and your app will be launched.
 34. You can also do model training on /training route
+
+----------------------------------------------- EKS Deployment -----------------------------------------------
+35. Install tools required for EKS management:
+      * Install kubectl: The command-line tool for interacting with a Kubernetes cluster.
+      * Install eksctl: A command-line tool for creating and managing clusters on EKS.
+
+36. Create the EKS Cluster using eksctl:
+      * Run the command to create the cluster. This will provision all necessary AWS resources (VPC, Master/Worker Nodes, IAM Roles).
+      * Command: `eksctl create cluster --name vehicle-insurance-cluster --region us-east-1 --nodegroup-name my-nodes --node-type t2.medium --nodes 2`
+      * After creation, `eksctl` automatically configures `kubectl` to point to the new cluster.
+
+37. Create Kubernetes Manifest files for the application:
+      * `deployment.yaml`: Defines how to run the application. It specifies the Docker image from ECR, number of pod replicas, container port, and environment variables (like MONGODB_URL, AWS keys).
+      * `service.yaml`: Defines how to expose the application to the internet. Use `Type: LoadBalancer` to automatically create an AWS Elastic Load Balancer (ELB) that routes traffic to the pods.
+
+38. Apply the manifest files to the cluster:
+      * `kubectl apply -f deployment.yaml`
+      * `kubectl apply -f service.yaml`
+
+39. Grant S3 Permissions to EKS Nodes (Debugging `AccessDenied` error):
+      * The pods running on EKS nodes need permission to access the S3 model bucket.
+      * The error "is not authorized to perform: s3:ListBucket" occurs because the node's IAM role lacks permissions.
+      * Fix: Go to IAM in AWS Console -> Create a policy allowing `s3:GetObject` and `s3:ListBucket` for your model bucket -> Attach this policy to the IAM role used by your EKS nodes (e.g., `eksctl-vehicle-insurance-cluster-n-NodeInstanceRole-...`).
+
+40. Verify the deployment:
+      * Check pods: `kubectl get pods` (ensure they are in 'Running' state).
+      * Check service: `kubectl get service vehicle-insurance-service`. Copy the `EXTERNAL-IP` (this is the public URL of your application).
+      * Restart pods if needed to apply new permissions: `kubectl rollout restart deployment/vehicle-insurance-deployment`.
+
+41. Access the application using the `EXTERNAL-IP` from the service in your web browser.
+
+----------------------------------------------- Cost Optimization & Cleanup -----------------------------------------------
+42. To avoid ongoing AWS charges after the project is complete, it's critical to delete the created resources.
+
+43. Delete the Kubernetes services and deployments from the cluster:
+      * `kubectl delete service vehicle-insurance-service`
+      * `kubectl delete deployment vehicle-insurance-deployment`
+
+44. Delete the EKS cluster itself. This will remove the control plane and worker nodes (EC2 instances).
+      * `eksctl delete cluster --name vehicle-insurance-cluster --region us-east-1`
+
+45. Terminate the EC2 instance used for the self-hosted GitHub Runner:
+      * Go to the AWS EC2 console, select the `vehicledata-machine` instance, and terminate it.
+
+----------------------------------- Monitoring with Prometheus & Grafana -----------------------------------
+46. Instrument the application to expose metrics:
+      * Add `prometheus-fastapi-instrumentator` to `requirements.txt`.
+      * In `app.py`, add code to instrument the FastAPI app and expose a `/metrics` endpoint.
+      * Re-build and push the updated Docker image to ECR via the CI/CD pipeline.
+
+47. Install Prometheus and Grafana on the EKS cluster using Helm:
+      * Install Helm (the Kubernetes package manager).
+      * Add the Prometheus community repository: `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
+      * Install the stack into a 'monitoring' namespace: `helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace`
+
+48. Configure Prometheus to find and scrape metrics from the application:
+      * Edit `service.yaml` to add annotations (`prometheus.io/scrape`, `prometheus.io/path`, `prometheus.io/port`).
+      * Apply the changes: `kubectl apply -f service.yaml`.
+
+49. Access the Grafana dashboard to visualize metrics:
+      * Get the admin password: `kubectl get secret --namespace monitoring prometheus-graf-admin -o jsonpath="{.data.password}" | base64 --decode`
+      * Forward a local port to the Grafana service: `kubectl --namespace monitoring port-forward svc/prometheus-grafana 3000:80`
+      * Open `http://localhost:3000` in a browser and log in with username 'admin' and the retrieved password.

@@ -12,9 +12,13 @@ from typing import Optional
 from src.constants import APP_HOST, APP_PORT
 from src.pipline.prediction_pipeline import VehicleData, VehicleDataClassifier
 from src.pipline.training_pipeline import TrainPipeline
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Initialize FastAPI application
 app = FastAPI()
+
+# Instrument the app to expose a /metrics endpoint for Prometheus
+Instrumentator().instrument(app).expose(app)
 
 # Mount the 'static' directory for serving static files (like CSS)
 app.mount("/static", StaticFiles(directory="static"), name="static")

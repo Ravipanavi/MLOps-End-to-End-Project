@@ -17,6 +17,7 @@ fastapi
 python-multipart
 uvicorn
 jinja2
+prometheus-fastapi-instrumentator
 imblearn
 python-dotenv
 -e .
