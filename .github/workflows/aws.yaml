@@ -57,8 +57,8 @@ jobs:
           kubectl create secret generic mongodb-secret --from-literal=MONGODB_URL='${{ secrets.MONGODB_URL }}' --dry-run=client -o yaml | kubectl apply -f -
           
           # Apply the service and deployment manifests
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f deployment.yaml
           
           # Trigger a rolling update of the deployment with the new Docker image
           kubectl set image deployment/vehicle-insurance-deployment vehicle-insurance-app=${{ needs.Continuous-Integration.outputs.image }}
