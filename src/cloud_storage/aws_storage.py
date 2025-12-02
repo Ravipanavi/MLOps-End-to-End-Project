@@ -1,5 +1,4 @@
 import boto3
-from src.configuration.aws_connection import S3Client
 from io import StringIO
 from typing import Union,List
 import os,sys
@@ -19,12 +18,11 @@ class SimpleStorageService:
 
     def __init__(self):
         """
-        Initializes the SimpleStorageService instance with S3 resource and client
-        from the S3Client class.
+        Initializes the SimpleStorageService instance.
+        Boto3 will automatically find credentials from the IAM role in the EKS environment.
         """
-        s3_client = S3Client()
-        self.s3_resource = s3_client.s3_resource
-        self.s3_client = s3_client.s3_client
+        self.s3_resource = boto3.resource('s3')
+        self.s3_client = boto3.client('s3')
 
     def s3_key_path_available(self, bucket_name, s3_key) -> bool:
         """
