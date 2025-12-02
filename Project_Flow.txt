@@ -172,39 +172,46 @@
 
 41. Access the application using the `EXTERNAL-IP` from the service in your web browser.
 
+----------------------------------- Pausing and Resuming the Project (Cost Saving) -----------------------------------
+42. To pause the project and minimize AWS costs without deleting everything:
+      * **Scale down EKS worker nodes:** This stops the most expensive component.
+        `eksctl scale nodegroup --cluster=vehicle-insurance-cluster --name=standard-workers --nodes=0 --nodes-min=0 --region=us-east-1`
+      * **Stop the GitHub Runner EC2 instance:** In the AWS EC2 console, stop the `vehicledata-machine` instance.
+      * **Delete the Load Balancer:** Delete the Kubernetes service to remove the AWS ELB.
+        `kubectl delete service vehicle-insurance-service`
+
+43. To resume the project:
+      * **Scale up EKS worker nodes:**
+        `eksctl scale nodegroup --cluster=vehicle-insurance-cluster --name=standard-workers --nodes=2 --nodes-min=2 --region=us-east-1`
+      * **Start the GitHub Runner EC2 instance:** In the AWS EC2 console, start the `vehicledata-machine` instance.
+      * **Re-apply Kubernetes manifests:**
+        `kubectl apply -f service.yaml`
+        `kubectl rollout restart deployment/vehicle-insurance-deployment`
+
 ----------------------------------------------- Cost Optimization & Cleanup -----------------------------------------------
 42. To avoid ongoing AWS charges after the project is complete, it's critical to delete the created resources.
+    Follow these steps in order for a clean teardown.
 
-43. Delete the Kubernetes services and deployments from the cluster:
+43. Delete all resources from the Kubernetes cluster:
+      * Uninstall Prometheus/Grafana: `helm uninstall prometheus --namespace monitoring`
+      * Delete the ServiceMonitor: `kubectl delete -f servicemonitor.yaml`
       * `kubectl delete service vehicle-insurance-service`
       * `kubectl delete deployment vehicle-insurance-deployment`
+      * `kubectl delete secret mongodb-secret`
 
 44. Delete the EKS cluster itself. This will remove the control plane and worker nodes (EC2 instances).
       * `eksctl delete cluster --name vehicle-insurance-cluster --region us-east-1`
 
 45. Terminate the EC2 instance used for the self-hosted GitHub Runner:
       * Go to the AWS EC2 console, select the `vehicledata-machine` instance, and terminate it.
-
------------------------------------ Monitoring with Prometheus & Grafana -----------------------------------
-46. Instrument the application to expose metrics:
-      * Add `prometheus-fastapi-instrumentator` to `requirements.txt`.
-      * In `app.py`, add code to instrument the FastAPI app and expose a `/metrics` endpoint.
-      * Re-build and push the updated Docker image to ECR via the CI/CD pipeline.
-
-47. Install Prometheus and Grafana on the EKS cluster using Helm:
-      * Install Helm (the Kubernetes package manager).
-      * Add the Prometheus community repository: `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
-      * Install the stack into a 'monitoring' namespace: `helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace`
-
-48. Configure Prometheus to find and scrape metrics from the application:
-      * The Prometheus Operator needs to be told explicitly how to find the application service.
-      * Add a `name: http` to the port in `service.yaml`.
-      * Add a `labels: {app: vehicle-insurance}` to the metadata in `service.yaml`.
-      * Create a `servicemonitor.yaml` file to define a ServiceMonitor resource. This resource tells Prometheus to look for a service with the label `app: vehicle-insurance` in the `default` namespace.
-      * Apply the changes: `kubectl apply -f service.yaml` and `kubectl apply -f servicemonitor.yaml`.
-
-49. Access the Grafana dashboard to visualize metrics:
-      * Get the admin password (the secret name may vary based on Helm release name): `kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode`
-      * Forward a local port to the Grafana service: `kubectl --namespace monitoring port-forward svc/prometheus-grafana 3000:80`
-      * Open `http://localhost:3000` in a browser and log in with username 'admin' and the retrieved password.
-      * Use the Explore view to query metrics like `http_requests_total{app="vehicle-insurance"}`.
+      
+46. Delete other AWS resources:
+      * **ECR Repository**: In the AWS ECR console, delete the `vehicle-insurance-repo` repository.
+      * **S3 Bucket**: In the AWS S3 console, empty and then delete the `mlops-project-model-mlopsproj` bucket.
+      * **IAM Users**: In the AWS IAM console, delete the users created for this project.
+      
+47. Terminate the MongoDB Atlas cluster from the MongoDB UI.
+      
+48. Clean up GitHub settings:
+      * Remove the self-hosted runner from repository settings.
+      * Remove the repository secrets.
