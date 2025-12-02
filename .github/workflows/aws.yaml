@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -35,7 +35,7 @@ jobs:
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" > image_uri.txt
 
       - name: Upload image URI as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: image-uri-artifact
           path: image_uri.txt
@@ -44,7 +44,6 @@ jobs:
     needs: Continuous-Integration
     runs-on: ubuntu-latest
     steps:
-
       - name: Configure AWS credentials for Kubectl
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -56,7 +55,7 @@ jobs:
         run: aws eks update-kubeconfig --name vehicle-insurance-cluster --region ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Download image URI artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: image-uri-artifact
 
@@ -67,9 +66,6 @@ jobs:
 
           # Create Kubernetes secret from GitHub secret. This only needs to run once, or when the secret changes.
           kubectl create secret generic mongodb-secret --from-literal=MONGODB_URL='${{ secrets.MONGODB_URL }}' --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Apply the service and deployment manifests
-          # The checkout step is no longer needed as we are not using local files for apply
           
           # Trigger a rolling update of the deployment with the new Docker image
           kubectl set image deployment/vehicle-insurance-deployment vehicle-insurance-app=$IMAGE_URI
