@@ -14,6 +14,7 @@ spec:
     spec:
       containers:
       - name: vehicle-insurance-app
+        image: dummy # This will be replaced by the CI/CD pipeline
         ports:
         - containerPort: 5000
         env:
