@@ -14,8 +14,6 @@ spec:
     spec:
       containers:
       - name: vehicle-insurance-app
-        # The image will be updated by the CI/CD pipeline
-        image: 427976559274.dkr.ecr.us-east-1.amazonaws.com/vehicleproj:latest
         ports:
         - containerPort: 5000
         env:
