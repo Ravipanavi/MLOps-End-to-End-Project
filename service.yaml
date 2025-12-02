@@ -14,3 +14,4 @@ spec:
     - protocol: TCP
       port: 80 # The Load Balancer will listen on port 80
       targetPort: 5000 # And forward traffic to our container's port 5000
+      name: http # Name the port so the ServiceMonitor can find it

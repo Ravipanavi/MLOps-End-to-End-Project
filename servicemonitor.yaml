@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vehicle-insurance-servicemonitor
+  namespace: default # Important: Create this in the same namespace as your app
+  labels:
+    release: prometheus # This label makes it discoverable by the Prometheus Operator
+spec:
+  selector:
+    matchLabels:
+      app: vehicle-insurance # This must match the 'app' label in your service.yaml
+  namespaceSelector:
+    matchNames:
+    - default # Tells the monitor to look for services in the 'default' namespace
+  endpoints:
+  - port: http # This should match the name of the port in your service.yaml
+    path: /metrics
+    interval: 15s
