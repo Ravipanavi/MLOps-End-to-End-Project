@@ -54,6 +54,9 @@ jobs:
         run: aws eks update-kubeconfig --name vehicle-insurance-cluster --region ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Deploy to EKS
+        env:
+          IMAGE_URI: ${{ needs.Continuous-Integration.outputs.image }}
+
         run: |
           # Create Kubernetes secret from GitHub secret. This only needs to run once, or when the secret changes.
           kubectl create secret generic mongodb-secret --from-literal=MONGODB_URL='${{ secrets.MONGODB_URL }}' --dry-run=client -o yaml | kubectl apply -f -
@@ -63,4 +66,4 @@ jobs:
           kubectl apply -f deployment.yaml
           
           # Trigger a rolling update of the deployment with the new Docker image
-          kubectl set image deployment/vehicle-insurance-deployment vehicle-insurance-app=${{ needs.Continuous-Integration.outputs.image }}
+          kubectl set image deployment/vehicle-insurance-deployment vehicle-insurance-app=$IMAGE_URI
