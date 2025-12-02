@@ -12,9 +12,10 @@ spec:
       labels:
         app: vehicle-insurance
     spec:
+      serviceAccountName: vehicle-insurance-service-account
       containers:
       - name: vehicle-insurance-app
-        image: dummy # This will be replaced by the CI/CD pipeline
+        image: 340545199393.dkr.ecr.us-east-1.amazonaws.com/vehicle-insurance-repo:latest
         ports:
         - containerPort: 5000
         env:
