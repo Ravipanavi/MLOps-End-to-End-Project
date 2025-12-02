@@ -24,13 +24,3 @@ spec:
             secretKeyRef:
               name: mongodb-secret # Reference the K8s secret
               key: MONGODB_URL
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: aws-secret # Reference the K8s secret for AWS
-              key: AWS_ACCESS_KEY_ID
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: aws-secret # Reference the K8s secret for AWS
-              key: AWS_SECRET_ACCESS_KEY
